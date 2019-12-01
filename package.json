@@ -10,9 +10,9 @@
       "version": "6.2.3"
     }
   },
-  "description": "Mandadin Android",
-  "license": "MIT",
-  "repository": "<fill-your-repository-here>",
+  "description": "Mandadin Para Android",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/AngelMunoz/Mandadin3",
   "scripts": {
     "lint": "tslint \"app/**/*.ts\""
   },

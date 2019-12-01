@@ -1,0 +1,26 @@
+<Page
+    class="page"
+    xmlns="http://www.nativescript.org/tns.xsd"
+    shownModally="onShownModally">
+  <StackLayout
+      class="form"
+      padding="20">
+    <Label>
+      <FormattedString>
+        <Span text="Eliminar " />
+        <Span text="'" />
+        <Span text="{{ item.item }}" />
+        <Span text="'" />
+        <Span text="?" />
+      </FormattedString>
+    </Label>
+    <StackLayout orientation="horizontal">
+      <Button
+          text="Si, Eliminar"
+          tap="{{ deleteItem }}" />
+      <Button
+          text="Cancelar"
+          tap="{{ cancel }}" />
+    </StackLayout>
+  </StackLayout>
+</Page>

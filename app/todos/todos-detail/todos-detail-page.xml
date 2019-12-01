@@ -1,0 +1,45 @@
+<Page
+    class="page"
+    xmlns="http://schemas.nativescript.org/tns.xsd">
+  <Page.ActionBar>
+    <ActionBar>
+      <NavigationButton
+          tap="onBackButtonTap"
+          icon="font://&#xf060;"
+          class="fas" />
+      <Label text="{{ todo.title }}"></Label>
+    </ActionBar>
+  </Page.ActionBar>
+
+  <FlexboxLayout
+      flexDirection="column"
+      justifyContent="space-around"
+      alignContent="flex-start">
+    <StackLayout class="input-field">
+      <TextField
+          hint="sin titulo"
+          text="{{ todo.title }}"
+          id="title"
+          textChange="{{ updateProperty }}" />
+    </StackLayout>
+    <StackLayout class="input-field">
+      <TextView
+          hint="sin contenido"
+          text="{{ todo.content }}"
+          id="content"
+          textChange="{{ updateProperty }}" />
+    </StackLayout>
+    <StackLayout class="input-field">
+      <Button
+          tap="{{ deleteTodo }}"
+          class="btn btn-danger">
+        <FormattedString>
+          <Span text="Borrar " />
+          <Span
+              text="&#xf1f8;"
+              class="fas"></Span>
+        </FormattedString>
+      </Button>
+    </StackLayout>
+  </FlexboxLayout>
+</Page>

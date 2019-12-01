@@ -1,0 +1,60 @@
+<Page
+    class="page"
+    navigatingTo="onNavigatingTo"
+    navigatedTo="{{ onNavigatedTo }}"
+    xmlns:lv="nativescript-ui-listview"
+    xmlns="http://schemas.nativescript.org/tns.xsd">
+  <Page.ActionBar>
+    <ActionBar class="action-bar">
+      <Label text="Mis Listas" />
+      <ActionBar.actionItems>
+        <ActionItem
+            icon="font://&#xf56f;"
+            class="fas"
+            ios.position="right"
+            tap="{{ onImportList }}" />
+      </ActionBar.actionItems>
+    </ActionBar>
+  </Page.ActionBar>
+  <StackLayout class="form">
+    <FlexboxLayout
+        flexDirection="row"
+        justifyContent="space-between">
+      <TextField
+          flexGrow="1"
+          class="input"
+          hint="Nueva Lista"
+          text="{{ titulo }}" />
+      <Button
+          flexShrink="2"
+          tap="{{ guardarListaActual }}">
+        <FormattedString>
+          <Span
+              text="&#xf0c7;"
+              class="fas"></Span>
+        </FormattedString>
+      </Button>
+    </FlexboxLayout>
+    <lv:RadListView
+        class="list-group"
+        items="{{ listas }}"
+        loadOnDemandMode="Auto"
+        loadOnDemandBufferSize="5"
+        loadMoreDataRequested="{{ onMoreDataRequested }}"
+        selectionBehavior="Press"
+        itemSelected="onSelected"
+        swipeActions="true"
+        visibility="{{ listas.length > 0 ? 'visible' : 'collapsed' }}"
+        height="420">
+      <lv:RadListView.itemTemplate>
+        <StackLayout
+            orientation="horizontal"
+            class="list-group-item">
+          <Label
+              text="{{ title }}"
+              textWrap="true"></Label>
+        </StackLayout>
+      </lv:RadListView.itemTemplate>
+    </lv:RadListView>
+  </StackLayout>
+</Page>

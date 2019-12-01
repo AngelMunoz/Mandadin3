@@ -1,0 +1,39 @@
+<Page
+    actionBarHidden="true"
+    navigatingTo="onNavigatingTo"
+    xmlns="http://schemas.nativescript.org/tns.xsd">
+  <BottomNavigation selectedIndex="{{ selectedView }}">
+    <TabStrip>
+      <TabStripItem class="navigation__item">
+        <Label text="Notas Rapidas" />
+        <Image
+            src="font://&#xf197;"
+            class="fas t-36" />
+      </TabStripItem>
+      <TabStripItem class="navigation__item">
+        <Label text="Mis Listas" />
+        <Image
+            src="font://&#xf0ca;"
+            class="fas t-36" />
+      </TabStripItem>
+      <TabStripItem class="navigation__item">
+        <Label text="Memes" />
+        <Image
+            src="font://&#xf753;"
+            class="fas t-36" />
+      </TabStripItem>
+    </TabStrip>
+
+    <TabContentItem>
+      <Frame defaultPage="todos/todos-page" />
+    </TabContentItem>
+
+    <TabContentItem>
+      <Frame defaultPage="mis-listas/mis-listas-page" />
+    </TabContentItem>
+
+    <TabContentItem>
+      <Frame defaultPage="memes/memes-page" />
+    </TabContentItem>
+  </BottomNavigation>
+</Page>

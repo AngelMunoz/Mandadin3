@@ -1,0 +1,36 @@
+<Page
+    class="page"
+    xmlns="http://www.nativescript.org/tns.xsd"
+    shownModally="onShownModally">
+  <StackLayout
+      class="form"
+      padding="20">
+    <Label
+        class="h3"
+        text="{{ message }}"
+        textWrap="true" />
+    <StackLayout class="input-field">
+      <Label text="Titulo de la lista" />
+      <TextField
+          text="{{ titulo }}"
+          hint="Titulo de la lista a importar" />
+    </StackLayout>
+    <StackLayout class="input-field">
+      <Label text="Contenido de la lista a importar" />
+      <TextView
+          text="{{ contenido }}"
+          height="224"
+          hint="Contenido de la lista de otras versiones de Mandadin" />
+    </StackLayout>
+    <StackLayout
+        class="input-field"
+        orientation="horizontal">
+      <Button
+          text="Importar"
+          tap="{{ importar }}" />
+      <Button
+          text="Cancelar"
+          tap="{{ cancelar }}" />
+    </StackLayout>
+  </StackLayout>
+</Page>

@@ -1,0 +1,84 @@
+<Page
+    class="page"
+    navigatingTo="onNavigatingTo"
+    xmlns:lv="nativescript-ui-listview"
+    xmlns="http://schemas.nativescript.org/tns.xsd">
+  <Page.ActionBar>
+    <ActionBar class="action-bar">
+      <Label text="Notas" />
+    </ActionBar>
+  </Page.ActionBar>
+  <StackLayout>
+    <FlexboxLayout
+        class="form"
+        flexDirection="column"
+        justifyContent="space-between">
+      <StackLayout class="input-field">
+        <TextField
+            class="input"
+            hint="Titulo de la nota"
+            text="{{ title }}" />
+      </StackLayout>
+      <FlexboxLayout
+          class="input-field"
+          flexDirection="row"
+          justifyContent="space-between">
+        <TextView
+            class="input"
+            hint="Contenido de la nota"
+            text="{{ content }}"
+            flexGrow="1" />
+        <Button
+            tap="{{ saveCurrentTodo }}"
+            flexShrink="2">
+          <FormattedString>
+            <Span
+                text="&#xf0c7;"
+                class="fas"></Span>
+          </FormattedString>
+        </Button>
+      </FlexboxLayout>
+    </FlexboxLayout>
+    <lv:RadListView
+        class="list-group"
+        items="{{ todos }}"
+        pullToRefresh="true"
+        margin="12"
+        pullToRefreshInitiated="{{ onPullToRefreshInitiated }}"
+        loadOnDemandMode="Auto"
+        loadOnDemandBufferSize="5"
+        loadMoreDataRequested="{{ onMoreDataRequested }}"
+        selectionBehavior="Press"
+        itemSelected="onSelected"
+        visibility="{{ todos.length > 0 ? 'visible' : 'collapsed' }}"
+        height="420">
+      <lv:RadListView.itemTemplate>
+        <FlexboxLayout
+            class="list-group-item"
+            flexDirection="row"
+            justifyContent="space-between">
+          <Label
+              flexGrow="1"
+              text="{{ title || content }}"
+              textWrap="true" />
+          <FlexboxLayout flexShrink="2">
+            <Button tap="{{ onCopy }}">
+              <FormattedString>
+                <Span
+                    text="&#xf0c5;"
+                    class="fas"></Span>
+              </FormattedString>
+            </Button>
+            <Button tap="{{ onShare }}">
+              <FormattedString>
+                <Span
+                    text="&#xf1e0;"
+                    class="fas"></Span>
+              </FormattedString>
+            </Button>
+          </FlexboxLayout>
+        </FlexboxLayout>
+      </lv:RadListView.itemTemplate>
+    </lv:RadListView>
+  </StackLayout>
+</Page>

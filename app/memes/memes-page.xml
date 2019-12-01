@@ -1,0 +1,18 @@
+<Page
+    class="page"
+    navigatingTo="onNavigatingTo"
+    navigatedTo="{{ onNavigatedTo }}"
+    xmlns="http://schemas.nativescript.org/tns.xsd">
+  <Page.ActionBar>
+    <ActionBar class="action-bar">
+      <Label text="Search"></Label>
+    </ActionBar>
+  </Page.ActionBar>
+  <FlexboxLayout
+      flexDirection="row"
+      flexWrap="wrap"
+      alignItems="center"
+      justifyContent="center">
+    <Image src="{{ shared }}" />
+  </FlexboxLayout>
+</Page>

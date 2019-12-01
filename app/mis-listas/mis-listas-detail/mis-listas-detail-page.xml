@@ -1,0 +1,125 @@
+<Page
+    class="page"
+    xmlns:lv="nativescript-ui-listview"
+    xmlns="http://schemas.nativescript.org/tns.xsd">
+  <ActionBar class="action-bar">
+    <NavigationButton
+        tap="onBackButtonTap"
+        icon="font://&#xf060;"
+        class="fas" />
+    <FlexboxLayout
+        flexDirection="column"
+        alignItems="center">
+      <Label text="Esconder Terminados" />
+      <Switch
+          flexShrink="2"
+          backgroundColor="black"
+          offBackgroundColor="black"
+          checked="{{ hideDone }}"
+          checkedChange="{{ onHideDoneChanged }}" />
+    </FlexboxLayout>
+    <ActionBar.actionItems>
+      <ActionItem
+          icon="font://&#xf0e2;"
+          class="fas"
+          ios.position="right"
+          visibility="{{ undoActions.length > 0 ? 'visible' : 'collapsed' }}"
+          tap="{{ onUndo }}" />
+      <ActionItem
+          icon="font://&#xf044;"
+          text="Editar Lista"
+          class="fas"
+          ios.position="left"
+          android.position="popup"
+          tap="{{ onToggleEdit }}" />
+      <ActionItem
+          icon="font://&#xf1e0;"
+          text="Compartir"
+          class="fas"
+          ios.position="right"
+          android.position="popup"
+          tap="{{ onShare }}" />
+    </ActionBar.actionItems>
+  </ActionBar>
+  <StackLayout class="form">
+    <FlexboxLayout
+        visibility="{{ editMiLista ? 'visible' : 'collapsed' }}"
+        flexDirection="row"
+        justifyContent="space-between">
+      <StackLayout
+          class="input-field"
+          flexGrow="1">
+        <TextField
+            class="input"
+            flexGrow="1"
+            hint="Nombre de la lista"
+            text="{{ titulo }}"
+            textChange="{{ onTituloChanged }}" />
+      </StackLayout>
+      <Button
+          selfAlign="flex-end"
+          flexShrink="2"
+          class="btn btn-danger"
+          tap="{{ onDeleteList }}">
+        <FormattedString>
+          <Span
+              text="&#xf1f8;"
+              class="fas"></Span>
+        </FormattedString>
+      </Button>
+    </FlexboxLayout>
+    <StackLayout
+        visibility="{{ editMiLista ? 'visible' : 'collapsed' }}"
+        class="hr"></StackLayout>
+    <FlexboxLayout
+        flexDirection="row"
+        justifyContent="space-between">
+      <StackLayout width="184">
+        <TextField
+            class="input"
+            hint="Nueva entrada"
+            text="{{ item }}" />
+      </StackLayout>
+      <Button
+          height="45"
+          tap="{{ guardarEntradaActual }}">
+        <FormattedString>
+          <Span
+              text="&#xf0c7;"
+              class="fas"></Span>
+        </FormattedString>
+      </Button>
+    </FlexboxLayout>
+    <lv:RadListView
+        class="list-group"
+        items="{{ items, items }}"
+        loadOnDemandMode="Auto"
+        loadOnDemandBufferSize="5"
+        loadMoreDataRequested="{{ onMoreDataRequested }}"
+        visibility="{{ items.length > 0 ? 'visible' : 'collapsed' }}"
+        height="420">
+      <lv:RadListView.itemTemplate>
+        <StackLayout
+            orientation="horizontal"
+            class="list-group-item">
+          <Switch
+              checked="{{ isDone }}"
+              checkedChange="{{ onIsDoneChange, onIsDoneChange }}" />
+          <TextField
+              hint="contenido de la entrada"
+              text="{{ item }}"
+              textChange="{{ onItemTextChange, onItemTextChange }}" />
+          <Button
+              class="btn btn-primary btn-rounded-sm"
+              tap="{{ onDeleteItem, onDeleteItem }}">
+            <FormattedString>
+              <Span
+                  text="&#xf1f8;"
+                  class="fas"></Span>
+            </FormattedString>
+          </Button>
+        </StackLayout>
+      </lv:RadListView.itemTemplate>
+    </lv:RadListView>
+  </StackLayout>
+</Page>

@@ -22,13 +22,14 @@ export class MiListaItemService {
   }
 
   findAllInList(listaId: string, hideDone?: boolean) {
-    const where: Array<WhereParams<MiListaItem>> = [{ property: "lista", comparison: "equalTo", value: listaId }];
+    const where: Array<WhereParams<MiListaItem>> = [];
     if (hideDone) {
       where.push({ property: "isDone", comparison: "equalTo", value: false });
     }
+    where.push({ property: "lista", comparison: "equalTo", value: listaId });
 
     return this.$database.db.query({
-      select: [QueryMeta.ALL, QueryMeta.ID],
+      select: [QueryMeta.ID],
       where
     }) as Array<MiListaItem>;
   }
@@ -60,7 +61,7 @@ export class MiListaItemService {
 
   destroyAll(listaId: string) {
     const results = this.$database.db.query({
-      select: [QueryMeta.ALL, QueryMeta.ID],
+      select: [QueryMeta.ID],
       where: [{ property: "lista", comparison: "equalTo", value: listaId }] as Array<WhereParams<MiListaItem>>
     });
 

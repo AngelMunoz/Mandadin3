@@ -36,12 +36,11 @@ export class MisListasDetailViewModel extends Observable {
     super();
     this.hideDone = miLista.hideDone;
     this.titulo = miLista.title;
-    this.pagination.where = [
-      { property: "lista", comparison: "equalTo", value: this.miLista.id }
-    ];
+    this.pagination.where = [];
     if (this.hideDone) {
       this.pagination.where.push({ property: "isDone", comparison: "equalTo", value: false });
     }
+    this.pagination.where.push({ property: "lista", comparison: "equalTo", value: this.miLista.id });
     this.refrescarEntradas();
   }
 
@@ -142,12 +141,11 @@ export class MisListasDetailViewModel extends Observable {
     };
     this.hideDone = milista.hideDone;
     this.$misListas.update(milista);
-    this.pagination.where = [
-      { property: "lista", comparison: "equalTo", value: this.miLista.id }
-    ];
+    this.pagination.where = [];
     if (this.hideDone) {
       this.pagination.where.push({ property: "isDone", comparison: "equalTo", value: false });
     }
+    this.pagination.where.push({ property: "lista", comparison: "equalTo", value: this.miLista.id });
     this.refrescarEntradas();
   }
 

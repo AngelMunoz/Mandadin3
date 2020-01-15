@@ -1,72 +1,82 @@
-import { DatabaseService } from "./database.service";
-import { PaginationArgs, WhereParams } from "~/interfaces/pagination";
+import databaseService, { DatabaseService } from "./database.service";
+import { PaginationArgs, PaginationResults } from "~/interfaces/pagination";
 import { MiListaItem } from "~/interfaces/mi-lista.interface";
-import { QueryMeta } from "nativescript-couchbase-plugin";
+import { getOffset } from "~/utils";
 
 export class MiListaItemService {
 
-  private readonly $database: DatabaseService;
+  private readonly _$collection: Collection<MiListaItem>;
 
-  constructor() {
-    this.$database = new DatabaseService("miListaItems");
+  constructor(db: DatabaseService) {
+    this._$collection = db.collection<MiListaItem>("milistaitems");
   }
 
-  find({ limit, page, select, where, order }: PaginationArgs<MiListaItem>) {
-    return this.$database.db.query({
-      limit,
-      offset: (page - 1) * limit,
-      select,
-      where,
-      order
-    }) as Array<MiListaItem>;
-  }
-
-  findAllInList(listaId: string, hideDone?: boolean) {
-    const where: Array<WhereParams<MiListaItem>> = [];
-    if (hideDone) {
-      where.push({ property: "isDone", comparison: "equalTo", value: false });
+  find({ limit, page, where, find }: PaginationArgs<MiListaItem>): PaginationResults<MiListaItem> {
+    const query = find ? find : {};
+    const offset = getOffset(page, limit);
+    let results: Array<MiListaItem & LokiObj>;
+    const resultset = this._$collection
+      .chain()
+      .find(query)
+      .limit(limit)
+      .offset(offset);
+    const precount = resultset.copy();
+    let count = 0;
+    if (where) {
+      results = resultset.where(where).data();
+      count = precount.where(where).count();
+    } else {
+      results = resultset.data();
+      count = precount.count();
     }
-    where.push({ property: "lista", comparison: "equalTo", value: listaId });
 
-    return this.$database.db.query({
-      select: [QueryMeta.ID],
-      where
-    }) as Array<MiListaItem>;
+    return [count, results];
   }
 
-  findOne(id: string) {
-    return this.$database.db.getDocument(id) as MiListaItem;
+  findAllInList(listaId: number, hideDone?: boolean) {
+    let findObj: Partial<MiListaItem> = { lista: listaId };
+    if (hideDone) {
+      findObj = { ...findObj, isDone: false };
+    }
+
+    return this._$collection.find(findObj);
+  }
+
+  findOne(id: number) {
+    return this._$collection.findOne({ $loki: id }) as MiListaItem;
   }
 
   exists(item: string) {
-    const results = this.$database.db.query({
-      select: [QueryMeta.ID],
-      where: [{ property: "item", comparison: "equalTo", value: item }] as Array<WhereParams<MiListaItem>>
-    });
+    const results = this._$collection.find({ item });
 
     return results.length > 0;
   }
 
   create(lista: MiListaItem) {
-    return this.$database.db.createDocument(lista, lista.id) as string;
+    return this._$collection.insert(lista);
   }
 
   update(lista: MiListaItem) {
-    return this.$database.db.updateDocument(lista.id, lista);
+    return this._$collection.update(lista);
   }
 
-  destroy(id: string) {
-    return this.$database.db.deleteDocument(id) as boolean;
+  destroy(id: number) {
+    try {
+      this._$collection.remove(id);
+
+      return true;
+    } catch (error) {
+
+      return false;
+    }
+
   }
 
-  destroyAll(listaId: string) {
-    const results = this.$database.db.query({
-      select: [QueryMeta.ID],
-      where: [{ property: "lista", comparison: "equalTo", value: listaId }] as Array<WhereParams<MiListaItem>>
-    });
+  destroyAll(listaId: number) {
+    const results = this.findAllInList(listaId);
 
-    return results.map(result => this.destroy(result.id)).every(deleted => deleted);
+    return results.map(result => this.destroy(result.$loki)).every(deleted => deleted);
   }
 }
 
-export default new MiListaItemService();
+export default new MiListaItemService(databaseService);

@@ -1,50 +1,67 @@
-import { DatabaseService } from "./database.service";
-import { PaginationArgs, WhereParams } from "~/interfaces/pagination";
+import databaseService, { DatabaseService } from "./database.service";
+import { PaginationArgs, WhereFunc, PaginationResults } from "~/interfaces/pagination";
 import { Todo } from "~/interfaces/todo.interface";
-import { QueryMeta } from "nativescript-couchbase-plugin";
+import { getOffset } from "~/utils";
 
 export class TodoService {
 
-  private readonly $database: DatabaseService;
+  private readonly _$collection: Collection<Todo>;
 
-  constructor() {
-    this.$database = new DatabaseService("todos");
+  constructor(db: DatabaseService) {
+    this._$collection = db.collection<Todo>("todos");
   }
 
-  find({ limit, page, select, where, order }: PaginationArgs<Todo>) {
-    return this.$database.db.query({
-      limit,
-      offset: (page - 1) * limit,
-      select,
-      where,
-      order
-    }) as Array<Todo>;
+  find({ limit, page, where, find }: PaginationArgs<Todo>): PaginationResults<Todo> {
+    const query = find ? find : {};
+    const offset = getOffset(page, limit);
+    let results: Array<Todo & LokiObj>;
+    const resultset = this._$collection
+      .chain()
+      .find(query)
+      .limit(limit)
+      .offset(offset);
+    const precount = resultset.copy();
+    let count = 0;
+    if (where) {
+      results = resultset.where(where).data();
+      count = precount.where(where).count();
+    } else {
+      results = resultset.data();
+      count = precount.count();
+    }
+
+    return [count, results];
   }
 
-  findOne(id: string) {
-    return this.$database.db.getDocument(id) as Todo;
+  findOne(id: number) {
+    return this._$collection.findOne({ $loki: id }) as Todo;
   }
 
   exists(title: string) {
-    const results = this.$database.db.query({
-      select: [QueryMeta.ID],
-      where: [{ property: "title", comparison: "equalTo", value: title }] as Array<WhereParams<Todo>>
-    });
+    const results = this._$collection.find({ title });
 
     return results.length > 0;
   }
 
-  create(todo: Todo) {
-    return this.$database.db.createDocument(todo, todo.id) as string;
+  create(lista: Todo) {
+    return this._$collection.insert(lista);
   }
 
-  update(todo: Todo) {
-    return this.$database.db.updateDocument(todo.id, todo);
+  update(lista: Todo) {
+    return this._$collection.update(lista);
   }
 
-  destroy(id: string) {
-    return this.$database.db.deleteDocument(id) as boolean;
+  destroy(id: number) {
+    try {
+      this._$collection.remove(id);
+
+      return true;
+    } catch (error) {
+
+      return false;
+    }
+
   }
 }
 
-export default new TodoService();
+export default new TodoService(databaseService);

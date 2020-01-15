@@ -6,7 +6,7 @@ export interface MiLista extends BaseModel {
 }
 
 export interface MiListaItem extends BaseModel {
-  lista: string;
+  lista: number;
   item: string;
   isDone: boolean;
 }

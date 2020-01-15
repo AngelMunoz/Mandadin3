@@ -1,16 +1,6 @@
-import { QueryComparisonOperator, QueryLogicalOperator, QueryMeta } from "nativescript-couchbase-plugin";
+export type PaginationResults<T> = [number, Array<T>];
 
-export interface PaginationResults<T> {
-  count: number;
-  list: Array<T>;
-}
-
-export interface WhereParams<T> {
-  property: keyof T;
-  comparison: QueryComparisonOperator;
-  logical?: QueryLogicalOperator;
-  value: any;
-}
+export type WhereFunc<T> = (item: T) => boolean;
 
 export interface OrderParams<T> {
   property: keyof T;
@@ -20,7 +10,6 @@ export interface OrderParams<T> {
 export interface PaginationArgs<T> {
   page: number;
   limit: number;
-  select?: Array<QueryMeta>;
-  where?: Array<WhereParams<T>>;
-  order?: Array<OrderParams<T>>;
+  find?: LokiQuery<T>;
+  where?: WhereFunc<T>;
 }

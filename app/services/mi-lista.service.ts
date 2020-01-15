@@ -1,50 +1,66 @@
-import { DatabaseService } from "./database.service";
-import { PaginationArgs, WhereParams } from "~/interfaces/pagination";
+import databaseService, { DatabaseService } from "./database.service";
+import { PaginationArgs, WhereFunc, PaginationResults } from "~/interfaces/pagination";
 import { MiLista } from "~/interfaces/mi-lista.interface";
-import { QueryMeta } from "nativescript-couchbase-plugin";
+import { getOffset } from "~/utils";
 
 export class MiListaService {
+  private readonly _$collection: Collection<MiLista>;
 
-  private readonly $database: DatabaseService;
-
-  constructor() {
-    this.$database = new DatabaseService("misListas");
+  constructor(db: DatabaseService) {
+    this._$collection = db.collection("mislistas");
   }
 
-  find({ limit, page, select, where, order }: PaginationArgs<MiLista>) {
-    return this.$database.db.query({
-      limit,
-      offset: (page - 1) * limit,
-      select,
-      where,
-      order
-    }) as Array<MiLista>;
+  find({ limit, page, where, find }: PaginationArgs<MiLista>): PaginationResults<MiLista> {
+    const query = find ? find : {};
+    const offset = getOffset(page, limit);
+    let results: Array<MiLista & LokiObj>;
+    const resultset = this._$collection
+      .chain()
+      .find(query)
+      .limit(limit)
+      .offset(offset);
+    const precount = resultset.copy();
+    let count = 0;
+    if (where) {
+      results = resultset.where(where).data();
+      count = precount.where(where).count();
+    } else {
+      results = resultset.data();
+      count = precount.count();
+    }
+
+    return [count, results];
   }
 
-  findOne(id: string) {
-    return this.$database.db.getDocument(id) as MiLista;
+  findOne(id: number) {
+    return this._$collection.findOne({ $loki: id }) as MiLista;
   }
 
   exists(title: string) {
-    const results = this.$database.db.query({
-      select: [QueryMeta.ID],
-      where: [{ property: "title", comparison: "equalTo", value: title }] as Array<WhereParams<MiLista>>
-    });
+    const results = this._$collection.find({ title });
 
     return results.length > 0;
   }
 
   create(lista: MiLista) {
-    return this.$database.db.createDocument(lista, lista.id) as string;
+    return this._$collection.insert(lista);
   }
 
   update(lista: MiLista) {
-    return this.$database.db.updateDocument(lista.id, lista);
+    return this._$collection.update(lista);
   }
 
-  destroy(id: string) {
-    return this.$database.db.deleteDocument(id) as boolean;
+  destroy(id: number) {
+    try {
+      this._$collection.remove(id);
+
+      return true;
+    } catch (error) {
+
+      return false;
+    }
+
   }
 }
 
-export default new MiListaService();
+export default new MiListaService(databaseService);

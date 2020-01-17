@@ -15,10 +15,7 @@
       false
     ],
     "deprecation": true,
-    "interface-name": [
-      true,
-      "never-prefix"
-    ],
+    "interface-name": false,
     "member-access": [
       true,
       "no-public"
@@ -41,6 +38,7 @@
     ],
     "no-unnecessary-initializer": true,
     "no-var-requires": false,
+    "no-var-keyword": false,
     "object-literal-key-quotes": [
       true,
       "as-needed"

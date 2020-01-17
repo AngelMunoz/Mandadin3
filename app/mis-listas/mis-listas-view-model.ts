@@ -1,29 +1,23 @@
 import { Observable, EventData } from "tns-core-modules/data/observable";
-import { MiListaService } from "~/services/mi-lista.service";
 import { ObservableArray } from "tns-core-modules/data/observable-array/observable-array";
-import { MiLista } from "~/interfaces/mi-lista.interface";
-import { PaginationArgs } from "~/interfaces/pagination";
+import { IMiLista } from "~/interfaces/mi-lista.interface";
+import { IPaginationArgs } from "~/interfaces/pagination";
 import { LoadOnDemandListViewEventData, RadListView } from "nativescript-ui-listview";
 import { Button } from "tns-core-modules/ui/button/button";
 import { Page, ShowModalOptions, NavigatedData } from "tns-core-modules/ui/page/page";
-import { parseList } from "~/utils";
-import { MiListaItemService } from "~/services/mi-lista-item.service";
+import { parseList, getOffset } from "~/utils";
 import { AppViewModel } from "~/app-view-model";
+import { MiLista, MiListaItem } from "~/models";
 
 export class MisListasViewModel extends Observable {
-  private pagination: PaginationArgs<MiLista> = {
+  private pagination: IPaginationArgs<IMiLista> = {
     limit: 10,
-    page: 1,
-    order: [{ property: "title", direction: "asc" }]
+    page: 1
   };
   private _titulo: string;
-  private _listas: ObservableArray<MiLista> = new ObservableArray<MiLista>();
+  private _listas: ObservableArray<IMiLista> = new ObservableArray<IMiLista>();
 
-  constructor(
-    private readonly $misListas: MiListaService,
-    private readonly $items: MiListaItemService,
-    private readonly $app: AppViewModel
-  ) {
+  constructor(private readonly $app: AppViewModel) {
     super();
     this.refrescarListas();
   }
@@ -41,21 +35,23 @@ export class MisListasViewModel extends Observable {
     return this._listas;
   }
 
-  set listas(listas: ObservableArray<MiLista>) {
+  set listas(listas: ObservableArray<IMiLista>) {
     this._listas = listas;
     this.notifyPropertyChange("listas", this._listas);
   }
 
-  guardarListaActual(args) {
-    if (this.$misListas.exists(this.titulo)) { return; }
-    const lista: MiLista = {
+  async guardarListaActual(args) {
+    const exists = await MiLista.exists(this.titulo);
+    if (exists) { return; }
+    const pre: Partial<IMiLista> = {
       hideDone: false,
-      id: `${Date.now()}`,
       title: this.titulo
     };
-    this.$misListas.create(lista);
+    const lista = new MiLista(pre);
+    await lista.save();
     this.titulo = "";
-    this.refrescarListas();
+
+    return this.refrescarListas();
   }
 
   onNavigatedTo(args: NavigatedData) {
@@ -70,9 +66,12 @@ export class MisListasViewModel extends Observable {
     this.showImportList(page);
   }
 
-  onMoreDataRequested(args: LoadOnDemandListViewEventData) {
+  async onMoreDataRequested(args: LoadOnDemandListViewEventData) {
     const listView: RadListView = args.object;
-    const found = this.$misListas.find(this.pagination);
+    const skip = getOffset(this.pagination.page, this.pagination.limit);
+
+    const [found, count] = await MiLista.findAndCount({ take: this.pagination.limit, skip });
+
     if (found.length === 0) {
       args.returnValue = false;
       listView.notifyLoadOnDemandFinished(true);
@@ -100,28 +99,35 @@ export class MisListasViewModel extends Observable {
     page.showModal("mis-listas/importar-lista-modal", options);
   }
 
-  proceedImportList(title: string, content: string) {
+  async proceedImportList(title: string, content: string) {
     if (!title || !content) { return; }
-    const lista: MiLista = {
-      id: `${Date.now()}`,
+    const pre: Partial<IMiLista> = {
       hideDone: false,
       title
     };
-    this.$misListas.create(lista);
+    const lista = new MiLista(pre);
+    lista.items = [];
     const items = parseList(content, lista.id);
-    for (const item of items) {
-      this.$items.create(item);
+    for (const preitem of items) {
+      const item = new MiListaItem(preitem);
+      lista.items.push(item);
     }
-    this.refrescarListas();
+    await lista.save();
+
+    return this.refrescarListas();
   }
 
-  refrescarListas() {
+  async refrescarListas() {
     const pages = [];
     for (let page = 1; page <= this.pagination.page; page++) {
       const pagination = { ...this.pagination, page };
-      const listas = this.$misListas.find(pagination);
+      const skip = getOffset(pagination.page, pagination.limit);
+      const listas = await MiLista.find({
+        take: pagination.limit,
+        skip
+      });
       pages.push(...listas);
     }
-    this.listas = new ObservableArray<MiLista>(pages);
+    this.listas = new ObservableArray<IMiLista>(pages);
   }
 }

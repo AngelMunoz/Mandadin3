@@ -1,52 +1,27 @@
-import * as LokiDB from "lokijs";
-import * as LokiNativescriptAdapter from "lokijs/src/loki-nativescript-adapter";
+import { createConnection, Connection } from "typeorm/browser";
+import { Todo, MiLista, MiListaItem } from "~/models";
 
 export class DatabaseService {
 
-  private readonly _db: Loki;
-  private readonly _collections: Array<[string, Array<string>, Array<string>]> = [
-    ["todos", ["title"], []],
-    ["mislistas", [], ["title"]],
-    ["milistaitems", ["lista"], ["item"]]
-  ];
+  private _connection: Connection;
 
-  constructor(name = "mandadin.json") {
-    this._db = new LokiDB(name, {
-      adapter: new LokiNativescriptAdapter(),
-      autoload: true,
-      env: "NATIVESCRIPT",
-      autoloadCallback: this._onLoad.bind(this)
-    });
+  start() {
+    return createConnection({
+      database: "mandadin.db",
+      type: "nativescript",
+      logging: true,
+      entities: [Todo, MiLista, MiListaItem]
+    })
+      .then(connection => {
+        this._connection = connection;
+
+        return connection.synchronize(false).then(() => connection);
+      });
   }
 
-  get db() {
-    return this._db;
+  get connection() {
+    return this._connection;
   }
-
-  ensureCollections() {
-    for (const [colName, indices, uniques] of this._collections) {
-      if (!this._db.getCollection(colName)) {
-        this.ensureCollection(colName, indices, uniques);
-      }
-    }
-  }
-
-  ensureCollection(colName, indices?, uniques?) {
-    const col = this._db.addCollection(colName, {
-      indices: indices ? indices : [],
-      unique: uniques ? uniques : []
-    });
-    col.ensureAllIndexes();
-  }
-
-  collection<T extends object>(name: string) {
-    return this._db.getCollection<T>(name);
-  }
-
-  private _onLoad() {
-    this.ensureCollections();
-  }
-
 }
 
 export default new DatabaseService();

@@ -1,25 +1,25 @@
 import { Observable, EventData } from "tns-core-modules/data/observable";
-import { Todo } from "~/interfaces/todo.interface";
-import { TodoService } from "~/services/todo.service";
-import { PaginationArgs } from "~/interfaces/pagination";
+import { ITodo } from "~/interfaces/todo.interface";
+import { IPaginationArgs } from "~/interfaces/pagination";
 import { ObservableArray } from "@nativescript/core/data/observable-array/observable-array";
 import { LoadOnDemandListViewEventData, RadListView, ListViewEventData } from "nativescript-ui-listview";
 import { shareText } from "nativescript-social-share";
 import { Button } from "tns-core-modules/ui/button/button";
 import { setText } from "nativescript-clipboard";
+import { Todo } from "~/models";
+import { getOffset } from "~/utils";
 
 export class TodosViewModel extends Observable {
 
-  private _todos: ObservableArray<Todo> = new ObservableArray<Todo>();
+  private _todos: ObservableArray<ITodo> = new ObservableArray<ITodo>();
   private _title = "";
   private _content = "";
-  private pagination: PaginationArgs<Todo> = {
+  private pagination: IPaginationArgs<ITodo> = {
     limit: 10,
-    page: 1,
-    order: [{ property: "id", direction: "desc" }]
+    page: 1
   };
 
-  constructor(private $todos: TodoService) {
+  constructor() {
     super();
     this.refreshTodos();
   }
@@ -46,34 +46,39 @@ export class TodosViewModel extends Observable {
     return this._todos;
   }
 
-  saveCurrentTodo() {
-    if (this.$todos.exists(this.title)) { return; }
-    const todo: Todo = {
-      id: `${Date.now()}`,
+  async saveCurrentTodo() {
+    const exists = await Todo.titleExists(this.title);
+    if (exists) { return; }
+    const todo: Partial<ITodo> = {
       title: this.title,
       content: this.content
     };
-    this.$todos.create(todo);
+
+    const newTodo = new Todo(todo);
+    await newTodo.save();
+
     this.title = "";
     this.content = "";
-    this.refreshTodos();
+
+    return this.refreshTodos();
   }
 
   onShare(args: EventData) {
-    const todo: Todo = (args.object as Button).bindingContext;
+    const todo: ITodo = (args.object as Button).bindingContext;
     const formatted = `${todo.title ? `${todo.title}\n\n` : ""}${todo.content ? todo.content : ""}`;
     shareText(formatted, todo.title);
   }
 
   onCopy(args: EventData) {
-    const todo: Todo = (args.object as Button).bindingContext;
+    const todo: ITodo = (args.object as Button).bindingContext;
     const formatted = `${todo.title ? `${todo.title}\n\n` : ""}${todo.content ? todo.content : ""}`;
     setText(formatted);
   }
 
-  onMoreDataRequested(args: LoadOnDemandListViewEventData) {
+  async onMoreDataRequested(args: LoadOnDemandListViewEventData) {
     const listView: RadListView = args.object;
-    const found = this.$todos.find(this.pagination);
+    const skip = getOffset(this.pagination.page, this.pagination.limit);
+    const [found, count] = await Todo.findAndCount({ skip, take: this.pagination.limit });
     if (found.length === 0) {
       args.returnValue = false;
       listView.notifyLoadOnDemandFinished(true);
@@ -91,29 +96,30 @@ export class TodosViewModel extends Observable {
     args.returnValue = true;
   }
 
-  onPullToRefreshInitiated(args: ListViewEventData) {
+  async onPullToRefreshInitiated(args: ListViewEventData) {
     const listView = args.object as RadListView;
     const pages = [];
     for (let page = 1; page <= this.pagination.page; page++) {
       const pagination = { ...this.pagination, page };
-      const todos = this.$todos.find(pagination);
+      const skip = getOffset(pagination.page, pagination.limit);
+      const todos = await Todo.find({ skip, take: pagination.limit });
       pages.push(...todos);
     }
-    this._todos = new ObservableArray<Todo>();
+    this._todos = new ObservableArray<ITodo>();
     this.todos.push(...pages);
     this.notifyPropertyChange("todos", this.todos);
     listView.notifyPullToRefreshFinished();
   }
 
-  refreshTodos() {
+  async refreshTodos() {
     const pages = [];
     for (let page = 1; page <= this.pagination.page; page++) {
       const pagination = { ...this.pagination, page };
-      const todos = this.$todos.find(pagination);
+      const skip = getOffset(pagination.page, pagination.limit);
+      const todos = await Todo.find({ skip, take: pagination.limit });
       pages.push(...todos);
     }
-    this._todos = new ObservableArray<Todo>();
-    this.todos.push(...pages);
+    this._todos = new ObservableArray<ITodo>(pages);
     this.notifyPropertyChange("todos", this.todos);
   }
 

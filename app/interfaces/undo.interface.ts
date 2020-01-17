@@ -1,7 +1,7 @@
-import { MiListaItem } from "./mi-lista.interface";
+import { IMiListaItem } from "./mi-lista.interface";
 
 export interface UndoArgs {
-  item: MiListaItem;
+  item: IMiListaItem;
   action: "MarkAsDone" | "MarkAsUndone";
   prevIndex: number;
 }

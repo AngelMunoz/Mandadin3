@@ -1,3 +1,3 @@
 export interface BaseModel {
-  $loki: number;
+  id: number;
 }

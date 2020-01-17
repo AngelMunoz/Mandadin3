@@ -1,25 +1,24 @@
 import { Observable, EventData } from "tns-core-modules/data/observable";
 import { Button } from "tns-core-modules/ui/button";
-import { MiLista, MiListaItem } from "~/interfaces/mi-lista.interface";
-import { MiListaItemService } from "~/services/mi-lista-item.service";
-import { PaginationArgs } from "~/interfaces/pagination";
+import { IMiLista, IMiListaItem } from "~/interfaces/mi-lista.interface";
+import { IPaginationArgs } from "~/interfaces/pagination";
 import { ObservableArray } from "tns-core-modules/data/observable-array/observable-array";
 import { LoadOnDemandListViewEventData, RadListView } from "nativescript-ui-listview";
-import { MiListaService } from "~/services/mi-lista.service";
 import { ShowModalOptions, Page } from "tns-core-modules/ui/page/page";
 import { Frame } from "@nativescript/core/ui/frame/frame";
 import { shareText } from "nativescript-social-share";
 import { UndoArgs } from "~/interfaces/undo.interface";
+import { MiListaItem, MiLista } from "~/models";
+import { getOffset } from "~/utils";
 
 export class MisListasDetailViewModel extends Observable {
 
-  private pagination: PaginationArgs<MiListaItem> = {
+  private pagination: IPaginationArgs<IMiListaItem> = {
     limit: 10,
-    page: 1,
-    order: [{ property: "item", direction: "asc" }]
+    page: 1
   };
 
-  private _items = new ObservableArray<MiListaItem>();
+  private _items = new ObservableArray<IMiListaItem>();
   private _undoActions = new ObservableArray<UndoArgs>();
 
   private _item = "";
@@ -29,26 +28,28 @@ export class MisListasDetailViewModel extends Observable {
 
   constructor(
     private readonly $frame: Frame,
-    private readonly $misListas: MiListaService,
-    private readonly $items: MiListaItemService,
-    private readonly miLista: MiLista
+    private readonly miLista: IMiLista
   ) {
     super();
     this.hideDone = miLista.hideDone;
     this.titulo = miLista.title;
-    this.pagination.where = [];
-    if (this.hideDone) {
-      this.pagination.where.push({ property: "isDone", comparison: "equalTo", value: false });
-    }
-    this.pagination.where.push({ property: "lista", comparison: "equalTo", value: this.miLista.id });
-    this.refrescarEntradas();
+    MiLista.findOneOrFail(this.miLista.id)
+      .then(lista => {
+        this.pagination.find = { lista };
+        if (this.hideDone) {
+          this.pagination.find = { ...this.pagination.find, isDone: false };
+        }
+
+        return this.refrescarEntradas();
+      });
+
   }
 
   get items() {
     return this._items;
   }
 
-  set items(items: ObservableArray<MiListaItem>) {
+  set items(items: ObservableArray<IMiListaItem>) {
     this._items = items;
     this.notifyPropertyChange("items", this._items);
   }
@@ -98,63 +99,67 @@ export class MisListasDetailViewModel extends Observable {
     this.notifyPropertyChange("hideDone", this._hideDone);
   }
 
-  guardarEntradaActual() {
-    if (this.$items.exists(this.item)) { return; }
-    const item: MiListaItem = {
-      id: `${Date.now()}`,
+  async guardarEntradaActual() {
+    const exists = await MiListaItem.exists(this.item);
+    if (exists) { return; }
+    const item: Partial<IMiListaItem> = {
       item: this.item,
-      lista: this.miLista.id,
-      isDone: false
+      isDone: false,
+      lista: this.pagination.find.lista
     };
-    this.$items.create(item);
-    this.item = "";
-    this.refrescarEntradas();
+    try {
+      await new MiListaItem(item).save();
+    } catch (error) {
+      console.error(error);
+
+      return;
+    }
+
+    return this.refrescarEntradas();
   }
 
   onToggleEdit(args) {
     this.editMiLista = !this.editMiLista;
   }
 
-  onShare(args) {
-    const items = this.$items.findAllInList(this.miLista.id);
+  async onShare(args) {
+    const items = await MiListaItem.find({ where: { lista: this.miLista.id } });
     const formatted = items.reduce((prev, current) => {
       return `${prev}[${current.isDone ? " x " : "    "}] ${current.item}\n`;
     }, "");
     shareText(formatted, this.miLista.title);
   }
 
-  onTituloChanged(args) {
+  async onTituloChanged(args) {
     if (args.value === this.miLista.title) { return; }
-    if (this.$misListas.exists(args.value)) { return; }
-    const milista: MiLista = {
-      ...this.miLista,
-      title: args.value
-    };
-    this.titulo = milista.title;
-    this.$misListas.update(milista);
+    const exists = await MiListaItem.exists(args.value);
+    if (exists) { return; }
+    const lista = await MiLista.findOneOrFail(this.miLista.id);
+    lista.title = args.value;
+    await lista.save();
+    this.titulo = lista.title;
   }
 
-  onHideDoneChanged(args) {
-    const milista: MiLista = {
-      ...this.miLista,
-      hideDone: args.value
-    };
-    this.hideDone = milista.hideDone;
-    this.$misListas.update(milista);
-    this.pagination.where = [];
+  async onHideDoneChanged(args) {
+    this.hideDone = args.value;
+    const lista = await MiLista.findOneOrFail(this.miLista.id);
+    lista.hideDone = args.value;
+    await lista.save();
+    this.pagination.find = { lista };
     if (this.hideDone) {
-      this.pagination.where.push({ property: "isDone", comparison: "equalTo", value: false });
+      this.pagination.find = { ...this.pagination.find, isDone: false };
     }
-    this.pagination.where.push({ property: "lista", comparison: "equalTo", value: this.miLista.id });
-    this.refrescarEntradas();
+
+    return this.refrescarEntradas();
   }
 
-  onIsDoneChange(args) {
-    const item: MiListaItem = args.object.bindingContext;
+  async onIsDoneChange(args) {
+    const item: IMiListaItem = args.object.bindingContext;
     if (args.value === item.isDone) { return; }
     const unmodified = { ...item };
-    item.isDone = args.value;
-    this.$items.update(item);
+    const existingItem = await MiListaItem.findOneOrFail(item.id);
+    existingItem.isDone = args.value;
+    await existingItem.save();
     const index: number = this.getIndex(item);
     if (this.hideDone && item.isDone && !Number.isNaN(Number(index))) {
       this.items.splice(index, 1);
@@ -167,9 +172,12 @@ export class MisListasDetailViewModel extends Observable {
     });
   }
 
-  onUndo(args) {
+  async onUndo(args) {
     const [{ item, prevIndex }] = this.undoActions.splice(0, 1);
-    this.$items.update(item);
+    const saved = await MiListaItem.findOneOrFail(item.id);
+    saved.isDone = item.isDone;
+    await saved.save();
+
     if (prevIndex !== null && prevIndex !== undefined && prevIndex >= 0) {
       this.items.splice(prevIndex, 0, item);
       this.notifyPropertyChange("items", this._items);
@@ -177,15 +185,17 @@ export class MisListasDetailViewModel extends Observable {
     this.notifyPropertyChange("undoActions", this._undoActions);
   }
 
-  onItemTextChange(args) {
-    if (this.$items.exists(args.value)) { return; }
-    const item: MiListaItem = args.object.bindingContext;
+  async onItemTextChange(args) {
+    const exists = await MiListaItem.exists(args.value);
+    if (exists) { return; }
+    const prev: IMiListaItem = args.object.bindingContext;
+    const item = await MiListaItem.findOneOrFail(prev.id);
     item.item = args.value;
-    this.$items.update(item);
+    await item.save();
   }
 
   onDeleteItem(args: EventData) {
-    const item: MiListaItem = (args.object as Button).bindingContext;
+    const item: IMiListaItem = (args.object as Button).bindingContext;
     const page = (args.object as Button).page;
 
     this.confirmDelete(item, page);
@@ -196,9 +206,10 @@ export class MisListasDetailViewModel extends Observable {
     this.confirmDeleteList(page);
   }
 
-  onMoreDataRequested(args: LoadOnDemandListViewEventData) {
+  async onMoreDataRequested(args: LoadOnDemandListViewEventData) {
     const listView: RadListView = args.object;
-    const found = this.$items.find(this.pagination);
+    const take = getOffset(this.pagination.page, this.pagination.limit);
+    const [found, count] = await MiListaItem.findAndCount({ take, skip: this.pagination.limit });
     if (found.length === 0) {
       args.returnValue = false;
       listView.notifyLoadOnDemandFinished(true);
@@ -216,7 +227,7 @@ export class MisListasDetailViewModel extends Observable {
     args.returnValue = true;
   }
 
-  confirmDelete(item: MiListaItem, page: Page) {
+  confirmDelete(item: IMiListaItem, page: Page) {
     const options: ShowModalOptions = {
       context: item,
       animated: true,
@@ -236,24 +247,31 @@ export class MisListasDetailViewModel extends Observable {
     page.showModal("mis-listas/mis-listas-detail/borrar-lista-modal", options);
   }
 
-  proceedDelete(item: MiListaItem, willDelete: boolean) {
+  async proceedDelete(item: IMiListaItem, willDelete: boolean) {
     if (!item || !willDelete) {
       return;
     }
-    this.$items.destroy(item.id);
+    try {
+      await MiListaItem.delete(item.id);
+    } catch (error) {
+      console.error(error);
+    }
     const [index] = this.items.map((itm, i) => itm.id === item.id ? i : null).filter((itm) => itm >= 0);
     if (!Number.isNaN(Number(index)) && index >= 0) {
       this.items.splice(index, 1);
     }
   }
 
-  proceedDeleteList(willDelete: boolean) {
+  async proceedDeleteList(willDelete: boolean) {
     if (!willDelete) {
       return;
     }
-    const deleted = this.$items.destroyAll(this.miLista.id);
-    if (deleted) {
-      this.$misListas.destroy(this.miLista.id);
+    try {
+      const lista = await MiLista.findOneOrFail(this.miLista.id);
+      await MiListaItem.delete({ lista });
+      await MiLista.delete(this.miLista.id);
+    } catch (error) {
+      console.error(error);
     }
     this.$frame.goBack();
   }
@@ -263,17 +281,24 @@ export class MisListasDetailViewModel extends Observable {
     this.notifyPropertyChange("undoActions", this.undoActions);
   }
 
-  refrescarEntradas() {
+  async refrescarEntradas() {
     const pages = [];
     for (let page = 1; page <= this.pagination.page; page++) {
       const pagination = { ...this.pagination, page };
-      const listas = this.$items.find(pagination);
-      pages.push(...listas);
+      const skip = getOffset(pagination.page, pagination.limit);
+      const where =
+        this.miLista.hideDone ? { lista: pagination.find.lista, isDone: false } : { lista: pagination.find.lista };
+      const lista = await MiListaItem.find({
+        take: pagination.limit,
+        where,
+        skip
+      });
+      pages.push(...lista);
     }
-    this.items = new ObservableArray<MiListaItem>(pages);
+    this.items = new ObservableArray<IMiListaItem>(pages);
   }
 
-  private getIndex(item: MiListaItem) {
+  private getIndex(item: IMiListaItem) {
     let index: number;
     this.items.forEach((itm, i) => {
       if (itm.id === item.id) {

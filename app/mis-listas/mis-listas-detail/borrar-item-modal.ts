@@ -1,13 +1,13 @@
 import { ShownModallyData, Page, Observable } from "tns-core-modules/ui/page/page";
-import { MiListaItem } from "~/interfaces/mi-lista.interface";
+import { IMiListaItem } from "~/interfaces/mi-lista.interface";
 
-type DeleteItemCloseCallback = (item: MiListaItem, willDelete: boolean) => void;
+type DeleteItemCloseCallback = (item: IMiListaItem, willDelete: boolean) => void;
 
 class BorrarItemViewModel extends Observable {
 
-  readonly item: MiListaItem;
+  readonly item: IMiListaItem;
   readonly closeCallback: DeleteItemCloseCallback;
-  constructor(item: MiListaItem, closeCallback: DeleteItemCloseCallback) {
+  constructor(item: IMiListaItem, closeCallback: DeleteItemCloseCallback) {
     super();
     this.item = item;
     this.closeCallback = closeCallback;

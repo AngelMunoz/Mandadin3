@@ -1,6 +1,6 @@
 import { BaseModel } from "./base.interface";
 
-export interface Todo extends BaseModel {
+export interface ITodo extends BaseModel {
   title?: string;
   content?: string;
 }

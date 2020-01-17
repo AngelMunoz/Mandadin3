@@ -1,12 +1,15 @@
 import { BaseModel } from "./base.interface";
+import { MiLista } from "~/models";
 
-export interface MiLista extends BaseModel {
+export interface IMiLista extends BaseModel {
   title: string;
   hideDone: boolean;
+  items?: Array<IMiListaItem>;
 }
 
-export interface MiListaItem extends BaseModel {
-  lista: number;
+export interface IMiListaItem extends BaseModel {
   item: string;
   isDone: boolean;
+  lista?: MiLista;
+  listaId: number;
 }

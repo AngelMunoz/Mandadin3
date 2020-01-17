@@ -108,10 +108,13 @@ export class MisListasViewModel extends Observable {
     const lista = new MiLista(pre);
     lista.items = [];
     const items = parseList(content, lista.id);
-    for (const preitem of items) {
-      const item = new MiListaItem(preitem);
-      lista.items.push(item);
-    }
+    const promises = items.map(itm => {
+      const item = new MiListaItem(itm);
+
+      return item.save().then(() => item);
+    });
+    const itms = await Promise.all(promises);
+    lista.items = [...itms];
     await lista.save();
 
     return this.refrescarListas();

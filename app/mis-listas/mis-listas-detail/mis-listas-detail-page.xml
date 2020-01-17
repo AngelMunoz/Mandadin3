@@ -78,6 +78,8 @@
         <TextField
             class="input"
             hint="Nueva entrada"
+            returnKeyType="done"
+            returnPress="{{ guardarEntradaActual }}"
             text="{{ item }}" />
       </StackLayout>
       <Button
@@ -107,6 +109,7 @@
               checkedChange="{{ onIsDoneChange, onIsDoneChange }}" />
           <TextField
               hint="contenido de la entrada"
+              returnKeyType="done"
               text="{{ item }}"
               textChange="{{ onItemTextChange, onItemTextChange }}" />
           <Button

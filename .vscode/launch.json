@@ -14,20 +14,6 @@
       "watch": true
     },
     {
-      "name": "Test on Android",
-      "type": "nativescript",
-      "request": "launch",
-      "platform": "android",
-      "appRoot": "${workspaceRoot}",
-      "sourceMaps": true,
-      "watch": false,
-      "stopOnEntry": true,
-      "launchTests": true,
-      "tnsArgs": [
-        "--justlaunch"
-      ]
-    },
-    {
       "name": "Attach on Android",
       "type": "nativescript",
       "request": "attach",

@@ -33,12 +33,9 @@ export class MisListasDetailViewModel extends Observable {
     super();
     this.hideDone = miLista.hideDone;
     this.titulo = miLista.title;
-    MiLista.findOneOrFail(this.miLista.id)
+    MiLista.findOneOrFail(miLista.id)
       .then(lista => {
-        this.pagination.find = { lista };
-        if (this.hideDone) {
-          this.pagination.find = { ...this.pagination.find, isDone: false };
-        }
+        this.pagination.find = this.hideDone ? { lista, isDone: false } : { lista };
 
         return this.refrescarEntradas();
       });
@@ -109,6 +106,7 @@ export class MisListasDetailViewModel extends Observable {
     };
     try {
       await new MiListaItem(item).save();
+      this.item = "";
     } catch (error) {
       console.error(error);
 
@@ -142,13 +140,10 @@ export class MisListasDetailViewModel extends Observable {
 
   async onHideDoneChanged(args) {
     this.hideDone = args.value;
-    const lista = await MiLista.findOneOrFail(this.miLista.id);
+    const lista = this.pagination.find.lista;
     lista.hideDone = args.value;
     await lista.save();
-    this.pagination.find = { lista };
-    if (this.hideDone) {
-      this.pagination.find = { ...this.pagination.find, isDone: false };
-    }
+    this.pagination.find = this.hideDone ? { lista, isDone: false } : { lista };
 
     return this.refrescarEntradas();
   }
@@ -161,9 +156,9 @@ export class MisListasDetailViewModel extends Observable {
     existingItem.isDone = args.value;
     await existingItem.save();
     const index: number = this.getIndex(item);
-    if (this.hideDone && item.isDone && !Number.isNaN(Number(index))) {
+    if (this.hideDone && existingItem.isDone && !Number.isNaN(Number(index))) {
       this.items.splice(index, 1);
-      this.notifyPropertyChange("items", this._items);
+      this.notifyPropertyChange("items", this.items);
     }
     this.pushUndo({
       action: args.value ? "MarkAsDone" : "MarkAsUndone",
@@ -179,8 +174,8 @@ export class MisListasDetailViewModel extends Observable {
     await saved.save();
 
     if (prevIndex !== null && prevIndex !== undefined && prevIndex >= 0) {
-      this.items.splice(prevIndex, 0, item);
-      this.notifyPropertyChange("items", this._items);
+      this.items.splice(prevIndex, 0, saved);
+      this.notifyPropertyChange("items", this.items);
     }
     this.notifyPropertyChange("undoActions", this._undoActions);
   }
@@ -208,8 +203,11 @@ export class MisListasDetailViewModel extends Observable {
 
   async onMoreDataRequested(args: LoadOnDemandListViewEventData) {
     const listView: RadListView = args.object;
-    const take = getOffset(this.pagination.page, this.pagination.limit);
-    const [found, count] = await MiListaItem.findAndCount({ take, skip: this.pagination.limit });
+    const lista = this.pagination.find.lista;
+    const where =
+      this.hideDone ? { lista, isDone: false } : { lista };
+    const skip = getOffset(this.pagination.page, this.pagination.limit);
+    const [found, count] = await MiListaItem.findAndCount({ take: this.pagination.limit, where, skip });
     if (found.length === 0) {
       args.returnValue = false;
       listView.notifyLoadOnDemandFinished(true);
@@ -259,6 +257,7 @@ export class MisListasDetailViewModel extends Observable {
     const [index] = this.items.map((itm, i) => itm.id === item.id ? i : null).filter((itm) => itm >= 0);
     if (!Number.isNaN(Number(index)) && index >= 0) {
       this.items.splice(index, 1);
+      this.notifyPropertyChange("items", this.items);
     }
   }
 
@@ -286,16 +285,18 @@ export class MisListasDetailViewModel extends Observable {
     for (let page = 1; page <= this.pagination.page; page++) {
       const pagination = { ...this.pagination, page };
       const skip = getOffset(pagination.page, pagination.limit);
+      const lista = pagination.find.lista;
       const where =
-        this.miLista.hideDone ? { lista: pagination.find.lista, isDone: false } : { lista: pagination.find.lista };
-      const lista = await MiListaItem.find({
+        this.hideDone ? { lista, isDone: false } : { lista };
+      const items = await MiListaItem.find({
         take: pagination.limit,
         where,
         skip
       });
-      pages.push(...lista);
+      pages.push(...items);
     }
     this.items = new ObservableArray<IMiListaItem>(pages);
+    this.notifyPropertyChange("items", this.items);
   }
 
   private getIndex(item: IMiListaItem) {
